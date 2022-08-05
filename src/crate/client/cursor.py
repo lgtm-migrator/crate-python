@@ -19,6 +19,7 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
+from .converter import Converter, DefaultTypeConverter
 from .exceptions import ProgrammingError
 import warnings
 
@@ -30,9 +31,10 @@ class Cursor(object):
     """
     lastrowid = None  # currently not supported
 
-    def __init__(self, connection):
+    def __init__(self, connection, converter: Converter):
         self.arraysize = 1
         self.connection = connection
+        self._converter = converter
         self._closed = False
         self._result = None
         self.rows = None
@@ -50,7 +52,10 @@ class Cursor(object):
         self._result = self.connection.client.sql(sql, parameters,
                                                   bulk_parameters)
         if "rows" in self._result:
-            self.rows = iter(self._result["rows"])
+            if self._converter is None:
+                self.rows = iter(self._result["rows"])
+            else:
+                self.rows = iter(self.convert_rows())
 
     def executemany(self, sql, seq_of_parameters):
         """
@@ -75,7 +80,10 @@ class Cursor(object):
             "cols": self._result.get("cols", []),
             "results": self._result.get("results")
         }
-        self.rows = iter(self._result["rows"])
+        if self._converter is None:
+            self.rows = iter(self._result["rows"])
+        else:
+            self.rows = iter(self.convert_rows())
         return self._result["results"]
 
     def fetchone(self):
@@ -210,3 +218,23 @@ class Cursor(object):
                 "duration" not in self._result:
             return -1
         return self._result.get("duration", 0)
+
+    def convert_rows(self):
+        """
+        Iterate rows, apply type converters, and generate converted rows.
+        """
+        assert "col_types" in self._result, \
+            "Unable to apply type conversion without `col_types` information"
+        type_id_list = self._result["col_types"]
+        for row in self._result["rows"]:
+            yield [
+                self._converter.convert(type_id, value)
+                for type_id, value in zip(type_id_list, row)
+            ]
+
+    @staticmethod
+    def get_default_converter() -> Converter:
+        """
+        Return the standard converter instance.
+        """
+        return DefaultTypeConverter()

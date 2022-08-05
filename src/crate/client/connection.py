@@ -46,6 +46,7 @@ class Connection(object):
                  socket_tcp_keepidle=None,
                  socket_tcp_keepintvl=None,
                  socket_tcp_keepcnt=None,
+                 converter=None,
                  ):
         """
         :param servers:
@@ -100,6 +101,9 @@ class Connection(object):
             ``net.ipv4.tcp_keepalive_probes`` kernel setting if ``socket_keepalive``
             is ``True``.
         """
+
+        self._converter = converter
+
         if client:
             self.client = client
         else:
@@ -123,12 +127,16 @@ class Connection(object):
         self.lowest_server_version = self._lowest_server_version()
         self._closed = False
 
-    def cursor(self):
+    def cursor(self, cursor=None, **kwargs) -> Cursor:
         """
         Return a new Cursor Object using the connection.
         """
+        converter = kwargs.pop("converter", self._converter)
         if not self._closed:
-            return Cursor(self)
+            return Cursor(
+                connection=self,
+                converter=converter,
+            )
         else:
             raise ProgrammingError("Connection closed")
 
