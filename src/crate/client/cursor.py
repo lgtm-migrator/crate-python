@@ -55,7 +55,7 @@ class Cursor(object):
             if self._converter is None:
                 self.rows = iter(self._result["rows"])
             else:
-                self.rows = iter(self.convert_rows())
+                self.rows = iter(self._convert_rows())
 
     def executemany(self, sql, seq_of_parameters):
         """
@@ -83,7 +83,7 @@ class Cursor(object):
         if self._converter is None:
             self.rows = iter(self._result["rows"])
         else:
-            self.rows = iter(self.convert_rows())
+            self.rows = iter(self._convert_rows())
         return self._result["results"]
 
     def fetchone(self):
@@ -219,7 +219,7 @@ class Cursor(object):
             return -1
         return self._result.get("duration", 0)
 
-    def convert_rows(self):
+    def _convert_rows(self):
         """
         Iterate rows, apply type converters, and generate converted rows.
         """
