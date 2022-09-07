@@ -63,7 +63,7 @@ class CursorTest(TestCase):
         # Create a `Cursor` object with converter.
         c = conn.cursor(converter=converter)
 
-        # Make up a response using CrateDB data types `STRING`, `IP`,
+        # Make up a response using CrateDB data types `TEXT`, `IP`,
         # `TIMESTAMP`, `BIT`.
         conn.client.set_next_response({
             "col_types": [4, 5, 11, 25],
@@ -81,4 +81,14 @@ class CursorTest(TestCase):
             datetime(2022, 7, 18, 18, 10, 36, 758000),
             6
         ])
+
+        # When removing the converters, all values are forwarded 1:1.
+        converter.remove(CrateDatatypeIdentifier.TEXT)
+        converter.remove(CrateDatatypeIdentifier.IP)
+        converter.remove(CrateDatatypeIdentifier.TIMESTAMP)
+        converter.remove(CrateDatatypeIdentifier.BIT)
+        c.execute("")
+        result = c.fetchone()
+        self.assertEqual(result, ['foo', '10.10.10.1', 1658167836758, "B'0110'"])
+
         conn.close()
