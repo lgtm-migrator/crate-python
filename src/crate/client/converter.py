@@ -27,8 +27,7 @@ import ipaddress
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Union
-
+from typing import Any, Callable, Dict, Optional, Union, List
 
 InputVal = Any
 
@@ -128,8 +127,17 @@ class Converter:
             return type_
 
     def convert(self, type_: int, value: Optional[Any]) -> Optional[Any]:
-        converter = self.get(type_)
-        return converter(value)
+        if isinstance(type_, List):
+            type_, inner_type = type_
+            assert type_ == 100, f"Type {type_} not implemented as collection type"
+            if value is None:
+                result = self.convert(inner_type, None)
+            else:
+                result = [self.convert(inner_type, item) for item in value]
+        else:
+            converter = self.get(type_)
+            result = converter(value)
+        return result
 
 
 class DefaultTypeConverter(Converter):

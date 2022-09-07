@@ -92,3 +92,45 @@ class CursorTest(TestCase):
         self.assertEqual(result, ['foo', '10.10.10.1', 1658167836758, "B'0110'"])
 
         conn.close()
+
+    def test_execute_array_with_converter(self):
+        client = ClientMocked()
+        conn = connect(client=client)
+        converter = Cursor.get_default_converter()
+        cursor = conn.cursor(converter=converter)
+
+        conn.client.set_next_response({
+            "col_types": [4, [100, 5]],
+            "cols": ["name", "address"],
+            "rows": [["foo", ["10.10.10.1", "10.10.10.2"]]],
+            "rowcount": 1,
+            "duration": 123
+        })
+
+        cursor.execute("")
+        result = cursor.fetchone()
+        self.assertEqual(result, [
+            'foo',
+            [IPv4Address('10.10.10.1'), IPv4Address('10.10.10.2')],
+        ])
+
+    def test_execute_nested_array_with_converter(self):
+        client = ClientMocked()
+        conn = connect(client=client)
+        converter = Cursor.get_default_converter()
+        cursor = conn.cursor(converter=converter)
+
+        conn.client.set_next_response({
+            "col_types": [4, [100, [100, 5]]],
+            "cols": ["name", "address_buckets"],
+            "rows": [["foo", [["10.10.10.1", "10.10.10.2"], ["10.10.10.3"], [], None]]],
+            "rowcount": 1,
+            "duration": 123
+        })
+
+        cursor.execute("")
+        result = cursor.fetchone()
+        self.assertEqual(result, [
+            'foo',
+            [[IPv4Address('10.10.10.1'), IPv4Address('10.10.10.2')], [IPv4Address('10.10.10.3')], [], None],
+        ])
