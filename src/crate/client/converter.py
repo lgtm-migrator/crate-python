@@ -29,6 +29,9 @@ from datetime import datetime
 from typing import Any, Callable, Dict, Optional, Union
 
 
+InputVal = Any
+
+
 def _to_ipaddress(value: Optional[str]) -> Optional[Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
     """
     https://docs.python.org/3/library/ipaddress.html
@@ -38,7 +41,7 @@ def _to_ipaddress(value: Optional[str]) -> Optional[Union[ipaddress.IPv4Address,
     return ipaddress.ip_address(value)
 
 
-def _to_datetime(value: Optional[str]) -> Optional[datetime]:
+def _to_datetime(value: Optional[float]) -> Optional[datetime]:
     """
     https://docs.python.org/3/library/datetime.html
     """
@@ -47,13 +50,13 @@ def _to_datetime(value: Optional[str]) -> Optional[datetime]:
     return datetime.utcfromtimestamp(value / 1e3)
 
 
-def _to_default(value: Optional[str]) -> Optional[str]:
+def _to_default(value: Optional[InputVal]) -> Optional[Any]:
     return value
 
 
 # Mapping for numeric data type identifiers defined by the CrateDB HTTP interface.
 # https://crate.io/docs/crate/reference/en/latest/interfaces/http.html#column-types
-_DEFAULT_CONVERTERS: Dict[int, Callable[[Optional[int]], Optional[Any]]] = {
+_DEFAULT_CONVERTERS: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]] = {
     5: _to_ipaddress,
     11: _to_datetime,
 }
@@ -62,26 +65,26 @@ _DEFAULT_CONVERTERS: Dict[int, Callable[[Optional[int]], Optional[Any]]] = {
 class Converter:
     def __init__(
         self,
-        mappings: Dict[int, Callable[[Optional[int]], Optional[Any]]] = None,
-        default: Callable[[Optional[int]], Optional[Any]] = _to_default,
+        mappings: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]] = None,
+        default: Callable[[Optional[InputVal]], Optional[Any]] = _to_default,
     ) -> None:
         self._mappings = mappings or {}
         self._default = default
 
     @property
-    def mappings(self) -> Dict[int, Callable[[Optional[int]], Optional[Any]]]:
+    def mappings(self) -> Dict[int, Callable[[Optional[InputVal]], Optional[Any]]]:
         return self._mappings
 
-    def get(self, type_: int) -> Callable[[Optional[int]], Optional[Any]]:
+    def get(self, type_: int) -> Callable[[Optional[InputVal]], Optional[Any]]:
         return self.mappings.get(type_, self._default)
 
-    def set(self, type_: int, converter: Callable[[Optional[int]], Optional[Any]]) -> None:
+    def set(self, type_: int, converter: Callable[[Optional[InputVal]], Optional[Any]]) -> None:
         self.mappings[type_] = converter
 
     def remove(self, type_: int) -> None:
         self.mappings.pop(type_, None)
 
-    def update(self, mappings: Dict[int, Callable[[Optional[int]], Optional[Any]]]) -> None:
+    def update(self, mappings: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]]) -> None:
         self.mappings.update(mappings)
 
     def convert(self, type_: int, value: Optional[Any]) -> Optional[Any]:
