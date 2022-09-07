@@ -26,6 +26,7 @@ https://crate.io/docs/crate/reference/en/latest/interfaces/http.html#column-type
 import ipaddress
 from copy import deepcopy
 from datetime import datetime
+from enum import Enum
 from typing import Any, Callable, Dict, Optional, Union
 
 
@@ -54,11 +55,41 @@ def _to_default(value: Optional[InputVal]) -> Optional[Any]:
     return value
 
 
-# Mapping for numeric data type identifiers defined by the CrateDB HTTP interface.
+# Symbolic aliases for the numeric data type identifiers defined by the CrateDB HTTP interface.
 # https://crate.io/docs/crate/reference/en/latest/interfaces/http.html#column-types
+class CrateDatatypeIdentifier(Enum):
+    NULL = 0
+    NOT_SUPPORTED = 1
+    CHAR = 2
+    BOOLEAN = 3
+    TEXT = 4
+    IP = 5
+    DOUBLE = 6
+    REAL = 7
+    SMALLINT = 8
+    INTEGER = 9
+    BIGINT = 10
+    TIMESTAMP = 11
+    OBJECT = 12
+    GEOPOINT = 13
+    GEOSHAPE = 14
+    UNCHECKED_OBJECT = 15
+    REGPROC = 19
+    TIME = 20
+    OIDVECTOR = 21
+    NUMERIC = 22
+    REGCLASS = 23
+    DATE = 24
+    BIT = 25
+    JSON = 26
+    CHARACTER = 27
+    ARRAY = 100
+
+
+# Map data type identifier to converter function.
 _DEFAULT_CONVERTERS: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]] = {
-    5: _to_ipaddress,
-    11: _to_datetime,
+    CrateDatatypeIdentifier.IP.value: _to_ipaddress,
+    CrateDatatypeIdentifier.TIMESTAMP.value: _to_datetime,
 }
 
 
@@ -78,14 +109,23 @@ class Converter:
     def get(self, type_: int) -> Callable[[Optional[InputVal]], Optional[Any]]:
         return self.mappings.get(type_, self._default)
 
-    def set(self, type_: int, converter: Callable[[Optional[InputVal]], Optional[Any]]) -> None:
-        self.mappings[type_] = converter
+    def set(self, type_: Union[CrateDatatypeIdentifier, int], converter: Callable[[Optional[InputVal]], Optional[Any]]) -> None:
+        type_int = self.get_mapping_key(type_)
+        self.mappings[type_int] = converter
 
-    def remove(self, type_: int) -> None:
-        self.mappings.pop(type_, None)
+    def remove(self, type_: Union[CrateDatatypeIdentifier, int]) -> None:
+        type_int = self.get_mapping_key(type_)
+        self.mappings.pop(type_int, None)
 
     def update(self, mappings: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]]) -> None:
         self.mappings.update(mappings)
+
+    @staticmethod
+    def get_mapping_key(type_: Union[CrateDatatypeIdentifier, int]) -> int:
+        if isinstance(type_, Enum):
+            return type_.value
+        else:
+            return type_
 
     def convert(self, type_: int, value: Optional[Any]) -> Optional[Any]:
         converter = self.get(type_)

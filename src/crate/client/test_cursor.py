@@ -25,6 +25,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 
 from crate.client import connect
+from crate.client.converter import CrateDatatypeIdentifier
 from crate.client.cursor import Cursor
 from crate.client.http import Client
 from crate.client.test_util import ClientMocked
@@ -57,7 +58,7 @@ class CursorTest(TestCase):
         # Use the set of data type converters from `DefaultTypeConverter`
         # and add another custom converter.
         converter = Cursor.get_default_converter()
-        converter.set(25, lambda value: int(value[2:-1], 2))
+        converter.set(CrateDatatypeIdentifier.BIT, lambda value: int(value[2:-1], 2))
 
         # Create a `Cursor` object with converter.
         c = conn.cursor(converter=converter)

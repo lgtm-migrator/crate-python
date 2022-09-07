@@ -337,18 +337,17 @@ By providing a custom converter instance, you can define your own data type
 conversions. Please inspect the list of available `CrateDB HTTP interface data
 type identifiers`_.
 
-CrateDB's ``BIT`` data type has the numeric identifier ``25``. To create a
-simple converter for converging CrateDB's ``BIT`` type to Python's ``int``
-type::
+To create a simple converter for converging CrateDB's ``BIT`` type to Python's
+``int`` type::
 
-    >>> from crate.client.converter import Converter
+    >>> from crate.client.converter import Converter, CrateDatatypeIdentifier
 
     >>> converter = Converter()
-    >>> converter.set(25, lambda value: int(value[2:-1], 2))
+    >>> converter.set(CrateDatatypeIdentifier.BIT, lambda value: int(value[2:-1], 2))
     >>> cursor = connection.cursor(converter=converter)
 
 Proof that the converter works correctly, ``B\'0110\'`` should be converted to
-``6``::
+``6``. CrateDB's ``BIT`` data type has the numeric identifier ``25``::
 
     >>> connection.client.set_next_response({
     ...     "col_types": [25],
