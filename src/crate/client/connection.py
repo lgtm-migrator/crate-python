@@ -100,6 +100,9 @@ class Connection(object):
             Set the ``TCP_KEEPCNT`` socket option, which overrides
             ``net.ipv4.tcp_keepalive_probes`` kernel setting if ``socket_keepalive``
             is ``True``.
+        :param converter:
+            (optional, defaults to ``None``)
+            A `Converter` object to propagate to newly created `Cursor` objects.
         """
 
         self._converter = converter
