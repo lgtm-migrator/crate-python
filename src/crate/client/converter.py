@@ -56,7 +56,7 @@ def _to_default(value: Optional[InputVal]) -> Optional[Any]:
 
 # Symbolic aliases for the numeric data type identifiers defined by the CrateDB HTTP interface.
 # https://crate.io/docs/crate/reference/en/latest/interfaces/http.html#column-types
-class CrateDatatypeIdentifier(Enum):
+class DataType(Enum):
     NULL = 0
     NOT_SUPPORTED = 1
     CHAR = 2
@@ -87,8 +87,8 @@ class CrateDatatypeIdentifier(Enum):
 
 # Map data type identifier to converter function.
 _DEFAULT_CONVERTERS: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]] = {
-    CrateDatatypeIdentifier.IP.value: _to_ipaddress,
-    CrateDatatypeIdentifier.TIMESTAMP.value: _to_datetime,
+    DataType.IP.value: _to_ipaddress,
+    DataType.TIMESTAMP.value: _to_datetime,
 }
 
 
@@ -108,12 +108,12 @@ class Converter:
     def get(self, type_: int) -> Callable[[Optional[InputVal]], Optional[Any]]:
         return self.mappings.get(type_, self._default)
 
-    def set(self, type_: Union[CrateDatatypeIdentifier, int], converter: Callable[[Optional[InputVal]], Optional[Any]]) -> None:
+    def set(self, type_: Union[DataType, int], converter: Callable[[Optional[InputVal]], Optional[Any]]) -> None:
         type_int = self.get_mapping_key(type_)
         self.mappings[type_int] = converter
 
     @staticmethod
-    def get_mapping_key(type_: Union[CrateDatatypeIdentifier, int]) -> int:
+    def get_mapping_key(type_: Union[DataType, int]) -> int:
         if isinstance(type_, Enum):
             return type_.value
         else:
