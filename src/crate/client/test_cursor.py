@@ -93,15 +93,6 @@ class CursorTest(TestCase):
             ],
         ])
 
-        # When removing the converters, all values are forwarded 1:1.
-        converter.remove(CrateDatatypeIdentifier.TEXT)
-        converter.remove(CrateDatatypeIdentifier.IP)
-        converter.remove(CrateDatatypeIdentifier.TIMESTAMP)
-        converter.remove(CrateDatatypeIdentifier.BIT)
-        c.execute("")
-        result = c.fetchone()
-        self.assertEqual(result, ['foo', '10.10.10.1', 1658167836758, "B'0110'"])
-
         conn.close()
 
     def test_execute_array_with_converter(self):

@@ -112,13 +112,6 @@ class Converter:
         type_int = self.get_mapping_key(type_)
         self.mappings[type_int] = converter
 
-    def remove(self, type_: Union[CrateDatatypeIdentifier, int]) -> None:
-        type_int = self.get_mapping_key(type_)
-        self.mappings.pop(type_int, None)
-
-    def update(self, mappings: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]]) -> None:
-        self.mappings.update(mappings)
-
     @staticmethod
     def get_mapping_key(type_: Union[CrateDatatypeIdentifier, int]) -> int:
         if isinstance(type_, Enum):
