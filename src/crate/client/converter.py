@@ -87,50 +87,46 @@ class DataType(Enum):
 
 
 # Map data type identifier to converter function.
-_DEFAULT_CONVERTERS: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]] = {
-    DataType.IP.value: _to_ipaddress,
-    DataType.TIMESTAMP_WITH_TZ.value: _to_datetime,
-    DataType.TIMESTAMP_WITHOUT_TZ.value: _to_datetime,
+_DEFAULT_CONVERTERS: Dict[DataType, Callable[[Optional[InputVal]], Optional[Any]]] = {
+    DataType.IP: _to_ipaddress,
+    DataType.TIMESTAMP_WITH_TZ: _to_datetime,
+    DataType.TIMESTAMP_WITHOUT_TZ: _to_datetime,
 }
 
 
 class Converter:
     def __init__(
         self,
-        mappings: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]] = None,
+        mappings: Dict[DataType, Callable[[Optional[InputVal]], Optional[Any]]] = None,
         default: Callable[[Optional[InputVal]], Optional[Any]] = _to_default,
     ) -> None:
         self._mappings = mappings or {}
         self._default = default
 
     @property
-    def mappings(self) -> Dict[int, Callable[[Optional[InputVal]], Optional[Any]]]:
+    def mappings(self) -> Dict[DataType, Callable[[Optional[InputVal]], Optional[Any]]]:
         return self._mappings
 
-    def get(self, type_: int) -> Callable[[Optional[InputVal]], Optional[Any]]:
+    def get(self, type_: DataType) -> Callable[[Optional[InputVal]], Optional[Any]]:
         return self.mappings.get(type_, self._default)
 
-    def set(self, type_: Union[DataType, int], converter: Callable[[Optional[InputVal]], Optional[Any]]) -> None:
-        type_int = self.get_mapping_key(type_)
-        self.mappings[type_int] = converter
+    def set(self, type_: DataType, converter: Callable[[Optional[InputVal]], Optional[Any]]) -> None:
+        self.mappings[type_] = converter
 
-    @staticmethod
-    def get_mapping_key(type_: Union[DataType, int]) -> int:
-        if isinstance(type_, Enum):
-            return type_.value
-        else:
-            return type_
-
-    def convert(self, type_: int, value: Optional[Any]) -> Optional[Any]:
+    def convert(self, type_: Union[DataType, int], value: Optional[Any]) -> Optional[Any]:
+        """
+        Convert a single row cell value with given data type. Invoked from `Cursor._convert_rows`.
+        """
         if isinstance(type_, List):
             type_, inner_type = type_
-            assert type_ == 100, f"Type {type_} not implemented as collection type"
+            if DataType(type_) is not DataType.ARRAY:
+                raise ValueError(f"Data type {type_} is not implemented as collection type")
             if value is None:
                 result = self.convert(inner_type, None)
             else:
                 result = [self.convert(inner_type, item) for item in value]
         else:
-            converter = self.get(type_)
+            converter = self.get(DataType(type_))
             result = converter(value)
         return result
 
