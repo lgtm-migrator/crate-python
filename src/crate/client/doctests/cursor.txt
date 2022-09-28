@@ -334,8 +334,9 @@ Custom data type conversion
 ===========================
 
 By providing a custom converter instance, you can define your own data type
-conversions. Please inspect the list of available `CrateDB HTTP interface data
-type identifiers`_.
+conversions. For investigating the list of available data types, please either
+inspect the ``DataType`` enum, or the documentation about the list of available
+`CrateDB data type identifiers for the HTTP interface`_.
 
 To create a simple converter for converging CrateDB's ``BIT`` type to Python's
 ``int`` type::
@@ -368,4 +369,4 @@ Proof that the converter works correctly, ``B\'0110\'`` should be converted to
     >>> connection.close()
 
 
-.. _CrateDB HTTP interface data type identifiers: https://crate.io/docs/crate/reference/en/latest/interfaces/http.html#column-types
+.. _CrateDB data type identifiers for the HTTP interface: https://crate.io/docs/crate/reference/en/latest/interfaces/http.html#column-types
