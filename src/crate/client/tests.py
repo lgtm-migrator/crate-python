@@ -312,6 +312,10 @@ def _try_execute(cursor, stmt):
     try:
         cursor.execute(stmt)
     except Exception:
+        # FIXME: Why does this croak on statements like ``DROP TABLE cities``?
+        # Note: When needing to debug the test environment, you may want to
+        #       enable this logger statement.
+        # log.exception("Executing SQL statement failed")
         pass
 
 
