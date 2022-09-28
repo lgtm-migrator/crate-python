@@ -224,7 +224,7 @@ class Cursor(object):
         Iterate rows, apply type converters, and generate converted rows.
         """
         assert "col_types" in self._result, \
-            "Unable to apply type conversion without `col_types` information"
+               "Unable to apply type conversion without `col_types` information"
         type_id_list = self._result["col_types"]
         for row in self._result["rows"]:
             yield [

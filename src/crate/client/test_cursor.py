@@ -79,18 +79,8 @@ class CursorTest(TestCase):
         c.execute("")
         result = c.fetchall()
         self.assertEqual(result, [
-            [
-                'foo',
-                IPv4Address('10.10.10.1'),
-                datetime(2022, 7, 18, 18, 10, 36, 758000),
-                6,
-            ],
-            [
-                None,
-                None,
-                None,
-                None,
-            ],
+            ['foo', IPv4Address('10.10.10.1'), datetime(2022, 7, 18, 18, 10, 36, 758000), 6],
+            [None, None, None, None],
         ])
 
         conn.close()
