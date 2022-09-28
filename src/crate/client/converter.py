@@ -68,11 +68,12 @@ class DataType(Enum):
     SMALLINT = 8
     INTEGER = 9
     BIGINT = 10
-    TIMESTAMP = 11
+    TIMESTAMP_WITH_TZ = 11
     OBJECT = 12
     GEOPOINT = 13
     GEOSHAPE = 14
-    UNCHECKED_OBJECT = 15
+    TIMESTAMP_WITHOUT_TZ = 15
+    UNCHECKED_OBJECT = 16
     REGPROC = 19
     TIME = 20
     OIDVECTOR = 21
@@ -88,7 +89,8 @@ class DataType(Enum):
 # Map data type identifier to converter function.
 _DEFAULT_CONVERTERS: Dict[int, Callable[[Optional[InputVal]], Optional[Any]]] = {
     DataType.IP.value: _to_ipaddress,
-    DataType.TIMESTAMP.value: _to_datetime,
+    DataType.TIMESTAMP_WITH_TZ.value: _to_datetime,
+    DataType.TIMESTAMP_WITHOUT_TZ.value: _to_datetime,
 }
 
 
