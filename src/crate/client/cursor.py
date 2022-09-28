@@ -78,6 +78,7 @@ class Cursor(object):
             "duration": sum(durations) if durations else -1,
             "rows": [],
             "cols": self._result.get("cols", []),
+            "col_types": self._result.get("col_types", []),
             "results": self._result.get("results")
         }
         if self._converter is None:
@@ -223,7 +224,7 @@ class Cursor(object):
         """
         Iterate rows, apply type converters, and generate converted rows.
         """
-        assert "col_types" in self._result, \
+        assert "col_types" in self._result and self._result["col_types"], \
                "Unable to apply type conversion without `col_types` information"
         type_id_list = self._result["col_types"]
         for row in self._result["rows"]:

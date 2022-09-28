@@ -126,3 +126,24 @@ class CursorTest(TestCase):
             'foo',
             [[IPv4Address('10.10.10.1'), IPv4Address('10.10.10.2')], [IPv4Address('10.10.10.3')], [], None],
         ])
+
+    def test_executemany_with_converter(self):
+        client = ClientMocked()
+        conn = connect(client=client)
+        converter = Cursor.get_default_converter()
+        cursor = conn.cursor(converter=converter)
+
+        conn.client.set_next_response({
+            "col_types": [4, 5],
+            "cols": ["name", "address"],
+            "rows": [["foo", "10.10.10.1"]],
+            "rowcount": 1,
+            "duration": 123
+        })
+
+        cursor.executemany("", [])
+        result = cursor.fetchall()
+
+        # ``executemany()`` is not intended to be used with statements returning result
+        # sets. The result will always be empty.
+        self.assertEqual(result, [])
