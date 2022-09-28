@@ -27,9 +27,12 @@ import ipaddress
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Union, List
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 InputVal = Any
+ConverterFunction = Callable[[Optional[InputVal]], Optional[Any]]
+ConverterDefinition = Union[ConverterFunction, Tuple[ConverterFunction, "ConverterDefinition"]]
+ColTypesDefinition = Union[int, List[Union[int, "ColTypesDefinition"]]]
 
 
 def _to_ipaddress(value: Optional[str]) -> Optional[Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]:
@@ -87,7 +90,7 @@ class DataType(Enum):
 
 
 # Map data type identifier to converter function.
-_DEFAULT_CONVERTERS: Dict[DataType, Callable[[Optional[InputVal]], Optional[Any]]] = {
+_DEFAULT_CONVERTERS: Dict[DataType, ConverterFunction] = {
     DataType.IP: _to_ipaddress,
     DataType.TIMESTAMP_WITH_TZ: _to_datetime,
     DataType.TIMESTAMP_WITHOUT_TZ: _to_datetime,
@@ -97,37 +100,55 @@ _DEFAULT_CONVERTERS: Dict[DataType, Callable[[Optional[InputVal]], Optional[Any]
 class Converter:
     def __init__(
         self,
-        mappings: Dict[DataType, Callable[[Optional[InputVal]], Optional[Any]]] = None,
-        default: Callable[[Optional[InputVal]], Optional[Any]] = _to_default,
+        mappings: Optional[Dict[DataType, ConverterFunction]] = None,
+        default: ConverterFunction = _to_default,
     ) -> None:
         self._mappings = mappings or {}
         self._default = default
 
     @property
-    def mappings(self) -> Dict[DataType, Callable[[Optional[InputVal]], Optional[Any]]]:
+    def mappings(self) -> Dict[DataType, ConverterFunction]:
         return self._mappings
 
-    def get(self, type_: DataType) -> Callable[[Optional[InputVal]], Optional[Any]]:
+    def get(self, type_: DataType) -> ConverterFunction:
         return self.mappings.get(type_, self._default)
 
-    def set(self, type_: DataType, converter: Callable[[Optional[InputVal]], Optional[Any]]) -> None:
+    def set(self, type_: DataType, converter: ConverterFunction) -> None:
         self.mappings[type_] = converter
 
-    def convert(self, type_: Union[DataType, int], value: Optional[Any]) -> Optional[Any]:
+    def convert(self, converter_definition: ConverterDefinition, value: Optional[Any]) -> Optional[Any]:
         """
-        Convert a single row cell value with given data type. Invoked from `Cursor._convert_rows`.
+        Convert a single row cell value using given converter definition.
+        Also works recursively on nested values like `ARRAY` collections.
+        Invoked from `Cursor._convert_rows`.
         """
-        if isinstance(type_, List):
-            type_, inner_type = type_
-            if DataType(type_) is not DataType.ARRAY:
-                raise ValueError(f"Data type {type_} is not implemented as collection type")
+        if isinstance(converter_definition, tuple):
+            type_, inner_type = converter_definition
             if value is None:
                 result = self.convert(inner_type, None)
             else:
                 result = [self.convert(inner_type, item) for item in value]
         else:
-            converter = self.get(DataType(type_))
-            result = converter(value)
+            result = converter_definition(value)
+        return result
+
+    def col_type_to_converter(self, type_: ColTypesDefinition) -> ConverterDefinition:
+        """
+        Resolve integer data type identifier to its corresponding converter function.
+        Also handles nested definitions with a *list* of data type identifiers on the
+        right hand side, describing the inner type of `ARRAY` values.
+
+        It is important to resolve the converter functions first, in order not to
+        hog the row loop with redundant lookups to the `mappings` dictionary.
+        """
+        result: ConverterDefinition
+        if isinstance(type_, list):
+            type_, inner_type = type_
+            if DataType(type_) is not DataType.ARRAY:
+                raise ValueError(f"Data type {type_} is not implemented as collection type")
+            result = (self.get(DataType(type_)), self.col_type_to_converter(inner_type))
+        else:
+            result = self.get(DataType(type_))
         return result
 
 

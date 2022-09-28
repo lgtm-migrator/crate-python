@@ -226,11 +226,19 @@ class Cursor(object):
         """
         assert "col_types" in self._result and self._result["col_types"], \
                "Unable to apply type conversion without `col_types` information"
+
+        # Resolve `col_types` definition to converter functions. Running the lookup
+        # redundantly on each row loop iteration would be a huge performance hog.
         type_id_list = self._result["col_types"]
+        converter_definitions = [
+            self._converter.col_type_to_converter(type_id) for type_id in type_id_list
+        ]
+
+        # Process result rows with conversion.
         for row in self._result["rows"]:
             yield [
-                self._converter.convert(type_id, value)
-                for type_id, value in zip(type_id_list, row)
+                self._converter.convert(converter_definition, value)
+                for converter_definition, value in zip(converter_definitions, row)
             ]
 
     @staticmethod
