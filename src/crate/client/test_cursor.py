@@ -85,6 +85,31 @@ class CursorTest(TestCase):
 
         conn.close()
 
+    def test_execute_with_converter_and_invalid_data_type(self):
+        client = ClientMocked()
+        conn = connect(client=client)
+        converter = Cursor.get_default_converter()
+
+        # Create a `Cursor` object with converter.
+        c = conn.cursor(converter=converter)
+
+        # Make up a response using CrateDB data types `TEXT`, `IP`,
+        # `TIMESTAMP`, `BIT`.
+        conn.client.set_next_response({
+            "col_types": [999],
+            "cols": ["foo"],
+            "rows": [
+                ["n/a"],
+            ],
+            "rowcount": 1,
+            "duration": 123
+        })
+
+        c.execute("")
+        with self.assertRaises(ValueError) as ex:
+            c.fetchone()
+        assert ex.exception.args == ("999 is not a valid DataType",)
+
     def test_execute_array_with_converter(self):
         client = ClientMocked()
         conn = connect(client=client)
@@ -105,6 +130,28 @@ class CursorTest(TestCase):
             'foo',
             [IPv4Address('10.10.10.1'), IPv4Address('10.10.10.2')],
         ])
+
+    def test_execute_array_with_converter_and_invalid_collection_type(self):
+        client = ClientMocked()
+        conn = connect(client=client)
+        converter = Cursor.get_default_converter()
+        cursor = conn.cursor(converter=converter)
+
+        # Converting collections only works for `ARRAY`s. (ID=100).
+        # When using `DOUBLE` (ID=6), it should croak.
+        conn.client.set_next_response({
+            "col_types": [4, [6, 5]],
+            "cols": ["name", "address"],
+            "rows": [["foo", ["10.10.10.1", "10.10.10.2"]]],
+            "rowcount": 1,
+            "duration": 123
+        })
+
+        cursor.execute("")
+
+        with self.assertRaises(ValueError) as ex:
+            cursor.fetchone()
+        assert ex.exception.args == ("Data type 6 is not implemented as collection type",)
 
     def test_execute_nested_array_with_converter(self):
         client = ClientMocked()
