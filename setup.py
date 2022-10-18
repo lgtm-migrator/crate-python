@@ -76,7 +76,7 @@ setup(
         doc=['sphinx>=3,<4',
              'crate-docs-theme'],
     ),
-    python_requires='>=3.4',
+    python_requires='>=3.6',
     install_requires=requirements,
     package_data={'': ['*.txt']},
     classifiers=[
